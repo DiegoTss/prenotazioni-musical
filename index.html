@@ -1,0 +1,336 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Prenotazione Musical | Clan Scout</title>
+  <!-- Tailwind CSS per la grafica -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Client Ufficiale Supabase -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    }
+  </style>
+</head>
+<body class="bg-slate-900 text-slate-100 min-h-screen flex flex-col items-center justify-start p-4 sm:p-6">
+
+  <!-- Container Principale -->
+  <div class="w-full max-w-lg mx-auto my-6">
+
+    <!-- Intestazione / Locandina -->
+    <header class="text-center mb-8">
+      <span class="inline-block bg-amber-500/20 text-amber-400 text-xs font-semibold px-3 py-1 rounded-full uppercase tracking-wider mb-3">
+        Spettacolo del Clan
+      </span>
+      <h1 class="text-3xl sm:text-4xl font-extrabold tracking-tight text-white mb-2">
+        Hercules: il Musical
+      </h1>
+      <p class="text-slate-400 text-sm sm:text-base">
+        C.R.G di Villadose
+      </p>
+    </header>
+
+    <!-- Card di Prenotazione -->
+    <div class="bg-slate-800/90 border border-slate-700/80 rounded-2xl p-6 sm:p-8 shadow-xl backdrop-blur-sm">
+
+      <!-- STATO: Caricamento iniziale -->
+      <div id="loadingState" class="text-center py-10">
+        <div class="inline-block animate-spin rounded-full h-8 w-8 border-4 border-amber-500 border-t-transparent mb-3"></div>
+        <p class="text-slate-400 text-sm">Caricamento disponibilità posti...</p>
+      </div>
+
+      <!-- STATO: Form di Prenotazione -->
+      <div id="bookingContent" class="hidden">
+        
+        <label class="block text-sm font-semibold text-slate-200 mb-3">
+          1. Scegli la data:
+        </label>
+
+        <!-- Griglia Serate -->
+        <div id="showsGrid" class="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-6">
+          <!-- Generato via JavaScript -->
+        </div>
+
+        <!-- Modulo Campi (compare quando una data è selezionata) -->
+        <form id="bookingForm" class="space-y-4">
+          <input type="hidden" id="selectedShowId" required />
+
+          <div>
+            <label for="fullName" class="block text-xs font-medium text-slate-300 mb-1">
+              Nome e Cognome del referente *
+            </label>
+            <input 
+              type="text" 
+              id="fullName" 
+              required 
+              placeholder="es. Mario Rossi"
+              class="w-full px-4 py-3 bg-slate-900 border border-slate-700 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-amber-500 transition"
+            />
+          </div>
+
+          <div>
+            <label for="contact" class="block text-xs font-medium text-slate-300 mb-1">
+              Email o Numero di Telefono *
+            </label>
+            <input 
+              type="text" 
+              id="contact" 
+              required 
+              placeholder="es. 3331234567 oppure mario@email.it"
+              class="w-full px-4 py-3 bg-slate-900 border border-slate-700 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-amber-500 transition"
+            />
+          </div>
+
+          <div>
+            <label for="seatsCount" class="block text-xs font-medium text-slate-300 mb-1">
+              Numero di posti da riservare *
+            </label>
+            <select 
+              id="seatsCount" 
+              class="w-full px-4 py-3 bg-slate-900 border border-slate-700 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-amber-500 transition"
+            >
+              <option value="1">1 Posto</option>
+              <option value="2">2 Posti</option>
+              <option value="3">3 Posti</option>
+              <option value="4">4 Posti</option>
+              <option value="5">5 Posti</option>
+              <option value="6">6 Posti</option>
+            </select>
+          </div>
+
+          <!-- Box Messaggi d'errore -->
+          <div id="errorAlert" class="hidden p-3 rounded-xl bg-red-950/60 border border-red-800 text-red-300 text-xs sm:text-sm"></div>
+
+          <!-- Pulsante Invia -->
+          <button 
+            type="submit" 
+            id="submitBtn"
+            class="w-full mt-4 bg-amber-500 hover:bg-amber-400 active:scale-[0.99] text-slate-950 font-bold py-3.5 px-4 rounded-xl shadow-lg transition duration-150 flex items-center justify-center gap-2 cursor-pointer"
+          >
+            <span id="btnText">Conferma Prenotazione</span>
+            <span id="btnSpinner" class="hidden animate-spin rounded-full h-5 w-5 border-2 border-slate-950 border-t-transparent"></span>
+          </button>
+        </form>
+
+      </div>
+
+      <!-- STATO: Schermata di Successo -->
+      <div id="successScreen" class="hidden text-center py-6">
+        <div class="w-16 h-16 bg-emerald-500/20 text-emerald-400 rounded-full flex items-center justify-center mx-auto mb-4 text-3xl">
+          ✓
+        </div>
+        <h2 class="text-2xl font-bold text-white mb-1">Prenotazione Confermata!</h2>
+        <p class="text-slate-300 text-sm mb-6">Grazie per il supporto, abbiamo riservato i tuoi posti.</p>
+
+        <!-- Riepilogo -->
+        <div class="bg-slate-900/80 border border-slate-700/60 rounded-xl p-4 text-left space-y-2 mb-6 text-sm">
+          <div class="flex justify-between border-b border-slate-800 pb-2">
+            <span class="text-slate-400">Referente:</span>
+            <span id="resName" class="font-medium text-white"></span>
+          </div>
+          <div class="flex justify-between border-b border-slate-800 pb-2">
+            <span class="text-slate-400">Serata:</span>
+            <span id="resDate" class="font-medium text-amber-400"></span>
+          </div>
+          <div class="flex justify-between">
+            <span class="text-slate-400">Posti riservati:</span>
+            <span id="resSeats" class="font-bold text-white"></span>
+          </div>
+        </div>
+
+        <p class="text-xs text-slate-400 mb-6">
+          Non serve stampare nulla: all'ingresso basterà indicare il nome del referente.
+        </p>
+
+        <button 
+          onclick="window.location.reload()" 
+          class="text-xs text-slate-400 hover:text-white underline underline-offset-4 cursor-pointer"
+        >
+          Effettua un'altra prenotazione
+        </button>
+      </div>
+
+    </div>
+
+    <!-- Footer -->
+    <footer class="text-center mt-8 text-xs text-slate-500">
+      Organizzato dal Clan Seme di Senape &bull; Posti limitati (max 150 a serata)
+    </footer>
+
+  </div>
+
+  <!-- SCRIPT DI COLLEGAMENTO A SUPABASE -->
+  <script>
+    // ==========================================
+    // INSERISCI QUI LE TUE CHIAVI DI SUPABASE
+    // ==========================================
+    const SUPABASE_URL = "https://ffvtzdnvlfwomhjdpwkv.supabase.co";
+    const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZmdnR6ZG52bGZ3b21oamRwd2t2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODk5MTUwODYsImV4cCI6MjEwNTQ5MTA4Nn0.6f4zGQQraU3opzvlHnwx7pKrrYpjsp4ohaif1oZDxpo";
+
+    // Inizializza il client Supabase
+    const { createClient } = supabase;
+    const db = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+    let showsData = [];
+    let selectedShow = null;
+
+    // Elementi DOM
+    const loadingState = document.getElementById("loadingState");
+    const bookingContent = document.getElementById("bookingContent");
+    const showsGrid = document.getElementById("showsGrid");
+    const bookingForm = document.getElementById("bookingForm");
+    const selectedShowIdInput = document.getElementById("selectedShowId");
+    const errorAlert = document.getElementById("errorAlert");
+    const submitBtn = document.getElementById("submitBtn");
+    const btnText = document.getElementById("btnText");
+    const btnSpinner = document.getElementById("btnSpinner");
+    const successScreen = document.getElementById("successScreen");
+
+    // 1. Carica la disponibilità al caricamento pagina
+    async function loadAvailability() {
+      try {
+        const { data, error } = await db.rpc('get_shows_availability');
+        if (error) throw error;
+
+        showsData = data;
+        renderShowsGrid();
+
+        loadingState.classList.add("hidden");
+        bookingContent.classList.remove("hidden");
+      } catch (err) {
+        console.error(err);
+        loadingState.innerHTML = `
+          <p class="text-red-400 text-sm">Impossibile caricare i dati.<br>Verifica le credenziali di Supabase.</p>
+        `;
+      }
+    }
+
+    // 2. Disegna i pulsanti per le serate
+    function renderShowsGrid() {
+      showsGrid.innerHTML = "";
+
+      showsData.forEach(show => {
+        const isSoldOut = show.remaining_seats <= 0;
+        const isSelected = selectedShow && selectedShow.id === show.id;
+
+        const card = document.createElement("div");
+        card.className = `p-4 rounded-xl border text-center transition cursor-pointer flex flex-col justify-between ${
+          isSoldOut 
+            ? "bg-slate-900/50 border-slate-800 opacity-50 cursor-not-allowed" 
+            : isSelected 
+              ? "bg-amber-500/10 border-amber-500 text-white shadow-md ring-1 ring-amber-500" 
+              : "bg-slate-900 border-slate-700 hover:border-slate-500 text-slate-300"
+        }`;
+
+        card.innerHTML = `
+          <div>
+            <div class="text-xs uppercase tracking-wider text-slate-400 font-semibold mb-1">${show.title}</div>
+            <div class="text-lg font-bold text-white mb-2">${show.show_date}</div>
+          </div>
+          <div class="mt-2">
+            ${
+              isSoldOut 
+                ? `<span class="inline-block bg-red-950 text-red-400 text-xs px-2.5 py-1 rounded-full font-bold">Posti Esauriti</span>`
+                : `<span class="text-xs ${show.remaining_seats < 25 ? 'text-amber-400 font-bold' : 'text-slate-400'}">
+                    ${show.remaining_seats} posti rimasti
+                  </span>`
+            }
+          </div>
+        `;
+
+        if (!isSoldOut) {
+          card.onclick = () => selectShow(show);
+        }
+
+        showsGrid.appendChild(card);
+      });
+
+      // Seleziona la prima data disponibile di default se nessuna è scelta
+      if (!selectedShow) {
+        const firstAvailable = showsData.find(s => s.remaining_seats > 0);
+        if (firstAvailable) selectShow(firstAvailable);
+      }
+    }
+
+    // 3. Selezione della serata
+    function selectShow(show) {
+      selectedShow = show;
+      selectedShowIdInput.value = show.id;
+      renderShowsGrid();
+    }
+
+    // 4. Invio del Modulo di Prenotazione
+    bookingForm.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      errorAlert.classList.add("hidden");
+
+      if (!selectedShow) {
+        showError("Seleziona una data per lo spettacolo.");
+        return;
+      }
+
+      const fullName = document.getElementById("fullName").value;
+      const contact = document.getElementById("contact").value;
+      const seatsCount = parseInt(document.getElementById("seatsCount").value, 10);
+
+      // UI Loading State
+      setLoading(true);
+
+      try {
+        // Chiamata alla funzione SQL anti-overbooking
+        const { data, error } = await db.rpc('reserve_seats', {
+          p_show_id: selectedShow.id,
+          p_full_name: fullName,
+          p_contact: contact,
+          p_seats_count: seatsCount
+        });
+
+        if (error) throw error;
+
+        // data è il JSON ritornato dalla funzione PostgreSQL: { success: true/false, message: "..." }
+        if (!data.success) {
+          showError(data.message);
+          // Ricarica la disponibilità se erano esauriti
+          loadAvailability();
+        } else {
+          // Successo! Mostra la schermata finale
+          document.getElementById("resName").textContent = fullName;
+          document.getElementById("resDate").textContent = selectedShow.show_date;
+          document.getElementById("resSeats").textContent = `${seatsCount} ${seatsCount === 1 ? 'Posto' : 'Posti'}`;
+
+          bookingContent.classList.add("hidden");
+          successScreen.classList.remove("hidden");
+        }
+      } catch (err) {
+        console.error(err);
+        showError("Si è verificato un errore durante la prenotazione. Riprova tra poco.");
+      } finally {
+        setLoading(false);
+      }
+    });
+
+    function showError(msg) {
+      errorAlert.textContent = msg;
+      errorAlert.classList.remove("hidden");
+    }
+
+    function setLoading(isLoading) {
+      submitBtn.disabled = isLoading;
+      if (isLoading) {
+        btnText.textContent = "Salvataggio in corso...";
+        btnSpinner.classList.remove("hidden");
+        submitBtn.classList.add("opacity-80", "cursor-wait");
+      } else {
+        btnText.textContent = "Conferma Prenotazione";
+        btnSpinner.classList.add("hidden");
+        submitBtn.classList.remove("opacity-80", "cursor-wait");
+      }
+    }
+
+    // Avvio all'apertura della pagina
+    loadAvailability();
+  </script>
+</body>
+</html>
